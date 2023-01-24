@@ -26,9 +26,8 @@ from typing import Optional
 
 import datasets
 import numpy as np
-from datasets import load_dataset
 
-import evaluate
+from datasets import load_dataset, load_metric
 import transformers
 from transformers import (
     AutoConfig,
@@ -40,6 +39,7 @@ from transformers import (
     PretrainedConfig,
     Trainer,
     TrainingArguments,
+    EarlyStoppingCallback,
     default_data_collator,
     set_seed,
 )
@@ -47,9 +47,13 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
+import wandb
+
+username = "yakachang"  # Input github username
+wandb.init(project="AESTansformers-ASAP", entity=username)
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.27.0.dev0")
+check_min_version("4.26.0.dev0")
 
 require_version(
     "datasets>=1.8.0",
@@ -319,7 +323,7 @@ def main():
             last_checkpoint is not None and training_args.resume_from_checkpoint is None
         ):
             logger.info(
-                f"Checkpoint detected, resuming training at {last_checkpoint}. "
+                f"Checkpoint detected, resuming training at {last_checkpoint}."
                 "To avoid this behavior, "
                 "change the `--output_dir` or add `--overwrite_output_dir` to train from scratch."
             )
@@ -463,31 +467,33 @@ def main():
         ignore_mismatched_sizes=model_args.ignore_mismatched_sizes,
     )
 
-    # Preprocessing the raw_datasets
-    if data_args.task_name is not None:
-        sentence1_key, sentence2_key = task_to_keys[data_args.task_name]
-    else:
-        # Again, we try to have some nice defaults but don't hesitate to tweak to your use case.
-        non_label_column_names = [
-            name for name in raw_datasets["train"].column_names if name != "label"
-        ]
-        if (
-            "sentence1" in non_label_column_names
-            and "sentence2" in non_label_column_names
-        ):
-            sentence1_key, sentence2_key = "sentence1", "sentence2"
-        else:
-            if len(non_label_column_names) >= 2:
-                sentence1_key, sentence2_key = non_label_column_names[:2]
-            else:
-                sentence1_key, sentence2_key = non_label_column_names[0], None
+    # TODO: delete the code below
+    # # Preprocessing the raw_datasets
+    # if data_args.task_name is not None:
+    #     sentence1_key, sentence2_key = task_to_keys[data_args.task_name]
+    # else:
+    #     # Again, we try to have some nice defaults but don't hesitate to tweak to your use case.
+    #     non_label_column_names = [
+    #         name for name in raw_datasets["train"].column_names if name != "label"
+    #     ]
+    #     if (
+    #         "sentence1" in non_label_column_names
+    #         and "sentence2" in non_label_column_names
+    #     ):
+    #         sentence1_key, sentence2_key = "sentence1", "sentence2"
+    #     else:
+    #         if len(non_label_column_names) >= 2:
+    #             sentence1_key, sentence2_key = non_label_column_names[:2]
+    #         else:
+    #             sentence1_key, sentence2_key = non_label_column_names[0], None
 
-    # Padding strategy
-    if data_args.pad_to_max_length:
-        padding = "max_length"
-    else:
-        # We will pad later, dynamically at batch creation, to the max sequence length in each batch
-        padding = False
+    # # Padding strategy
+    # if data_args.pad_to_max_length:
+    #     padding = "max_length"
+    # else:
+    #     # We will pad later,
+    #     # dynamically at batch creation, to the max sequence length in each batch
+    #     padding = False
 
     # Some models have set the order of the labels to use, so let's make sure we do use it.
     label_to_id = None
@@ -530,13 +536,11 @@ def main():
 
     def preprocess_function(examples):
         # Tokenize the texts
-        args = (
-            (examples[sentence1_key],)
-            if sentence2_key is None
-            else (examples[sentence1_key], examples[sentence2_key])
-        )
         result = tokenizer(
-            *args, padding=padding, max_length=max_seq_length, truncation=True
+            examples["text"],
+            padding="max_length",
+            max_length=max_seq_length,
+            truncation=True,
         )
 
         # Map labels to IDs (not necessary for GLUE tasks)
@@ -554,6 +558,7 @@ def main():
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
         )
+
     if training_args.do_train:
         if "train" not in raw_datasets:
             raise ValueError("--do_train requires a train dataset")
@@ -596,11 +601,11 @@ def main():
         for index in random.sample(range(len(train_dataset)), 3):
             logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
 
-    # Get the metric function
+    # # Get the metric function
     if data_args.task_name is not None:
-        metric = evaluate.load("glue", data_args.task_name)
+        metric = load_metric("glue", data_args.task_name)
     else:
-        metric = evaluate.load("accuracy")
+        metric = load_metric("accuracy")
 
     # You can define your custom compute_metrics function.
     # It takes an `EvalPrediction` object (a namedtuple with a
@@ -637,6 +642,7 @@ def main():
         compute_metrics=compute_metrics,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
     )
 
     # Training
