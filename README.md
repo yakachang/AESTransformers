@@ -9,9 +9,15 @@ conda create -y -n aes-transformers python=3.8
 conda activate aes-transformers
 ```
 
+For Jupyter Notebook, run:
+```bash
+conda install -n aes-transformers ipykernel --update-deps --force-reinstall
+```
+
 Then, from the project root, run:
 ```bash
 pip install -r requirements.txt
+pip install git+https://github.com/huggingface/transformers
 ```
 
 For further development or modification, we recommend installing `pre-commit`:
