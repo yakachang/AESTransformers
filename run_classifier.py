@@ -47,6 +47,8 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
+from processors import score_converter
+
 import wandb
 
 username = "yakachang"  # Input github username
@@ -429,8 +431,9 @@ def main():
         else:
             # A useful fast method:
             # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.unique
-            label_list = raw_datasets["train"].unique("label")
-            label_list.sort()  # Let's sort it for determinism
+            # label_list = raw_datasets["train"].unique("label")
+            # label_list.sort()  # Let's sort it for determinism
+            label_list = [i for i in range(0, 60 + 1)]
             num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
@@ -545,10 +548,22 @@ def main():
 
         # Map labels to IDs (not necessary for GLUE tasks)
         if label_to_id is not None and "label" in examples:
-            result["label"] = [
-                (label_to_id[label] if label != -1 else -1)
-                for label in examples["label"]
-            ]
+            if is_regression:
+                result["label"] = [
+                    (label_to_id[label] if label != -1 else -1)
+                    for label in examples["label"]
+                ]
+            else:
+                result["label"] = [
+                    (
+                        label_to_id[score_converter(prompt_id, label)]
+                        if label != -1
+                        else -1
+                    )
+                    for label, prompt_id in zip(
+                        examples["label"], examples["prompt_id"]
+                    )
+                ]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
