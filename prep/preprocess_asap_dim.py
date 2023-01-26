@@ -120,6 +120,7 @@ def convert_to_jsonlines(df, set_id):
                     dim = "holistic"
                 else:
                     df_tmp.rename(columns={dim: "label"}, inplace=True)
+                    df_tmp["label"] = df_tmp["label"].astype("int64")
 
                 df_tmp.to_json(
                     f"{args.output_folder_name}/set{set_id}/{dim}/{filename}.json",
