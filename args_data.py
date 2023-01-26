@@ -12,16 +12,6 @@ class DataTrainingArguments:
     the command line.
     """
 
-    dataset_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "The name of the dataset to use (via the datasets library)."},
-    )
-    dataset_config_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "The configuration name of the dataset to use (via the datasets library)."
-        },
-    )
     dataset_source: Optional[str] = field(
         default=None,
         metadata={
@@ -95,9 +85,7 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self):
-        if self.dataset_name is not None:
-            pass
-        elif self.train_file is None or self.validation_file is None:
+        if self.train_file is None or self.validation_file is None:
             raise ValueError(
                 "Need either a GLUE task, a training/validation file or a dataset name."
             )
