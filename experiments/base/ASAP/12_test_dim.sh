@@ -43,6 +43,7 @@ fi
 eval_file_cm="${out_dir}/confusion_metrix.png"
 if [[ ! -f "${eval_file_cm}" ]]; then
 python '../../../evaluate_cm.py' \
+    --set_id "${fold_name}" \
     --gold_file "${data_dir}/test.json" \
     --prob_file "${out_dir}/test.prob" \
     --out_file "${eval_file_cm}"

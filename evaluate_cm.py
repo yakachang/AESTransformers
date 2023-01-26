@@ -60,11 +60,18 @@ def score_converter(prompt_id, score):
         return score
 
 
-def load_pred_labels(filename, prompt_id):
+def load_pred_labels(filename, prompt_id=None, set_id=None):
     probs = np.loadtxt(filename, dtype=np.float64)
     pred_labels = np.argmax(probs, axis=1)
-    i2label = {i: label for i, label in enumerate([i for i in range(0, 60 + 1)])}
-    return [score_converter(prompt_id, i2label[pred]) for pred in pred_labels]
+    if prompt_id:
+        i2label = {i: label for i, label in enumerate([i for i in range(0, 60 + 1)])}
+        return [score_converter(prompt_id, i2label[pred]) for pred in pred_labels]
+    elif set_id:
+        if set_id == "set1":
+            i2label = {i: label for i, label in enumerate([i for i in range(1, 6 + 1)])}
+        elif set_id == "set2":
+            i2label = {i: label for i, label in enumerate([i for i in range(0, 4 + 1)])}
+        return [i2label[pred] for pred in pred_labels]
 
 
 def load_gold_labels(filename):
@@ -75,6 +82,7 @@ def load_gold_labels(filename):
 def build_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt_id", type=int, default=None)
+    parser.add_argument("--set_id", type=str, default=None)
     parser.add_argument("--gold_file", type=str, required=True)
     parser.add_argument("--prob_file", type=str, required=True)
     parser.add_argument("--out_file", type=str, required=True)
@@ -86,7 +94,7 @@ def build_args():
 def main():
     args = build_args()
     gold_labels = load_gold_labels(args.gold_file)
-    pred_labels = load_pred_labels(args.prob_file, args.prompt_id)
+    pred_labels = load_pred_labels(args.prob_file, args.prompt_id, args.set_id)
 
     cm = confusion_matrix(gold_labels, pred_labels, labels=get_labels(args.prompt_id))
 
