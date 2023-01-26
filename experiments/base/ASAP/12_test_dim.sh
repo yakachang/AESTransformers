@@ -9,10 +9,11 @@ max_label=6
 
 pretrained="bert-base-cased"
 max_len=512
+lr=2e-5
 batch_size=8
 grad_acc=1
 
-path_to_model="models/Original/base/sets/${fold_name}/b${batch_size}a${grad_acc}"
+path_to_model="models/Original/base/sets/${fold_name}/lr${lr}-b${batch_size}a${grad_acc}"
 model_dir="${path_to_model}/${pretrained}-${max_len}-${dim}-mod"
 data_dir="../../../data/ASAP++/Original/${fold_name}/${dim}"
 
