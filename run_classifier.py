@@ -104,8 +104,14 @@ class DataTrainingArguments:
             "help": "The configuration name of the dataset to use (via the datasets library)."
         },
     )
+    dataset_source: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "The source of the dataset (e.g. folds, dim, holistic, etc)."
+        },
+    )
     max_seq_length: int = field(
-        default=128,
+        default=512,
         metadata={
             "help": (
                 "The maximum total input sequence length after tokenization. Sequences longer "
@@ -260,6 +266,14 @@ class ModelArguments:
         metadata={
             "help": "Will enable to load a pretrained model whose head dimensions are different."
         },
+    )
+    min_label: Optional[int] = field(
+        default=0,
+        metadata={"help": "Specify the minimum label"},
+    )
+    max_label: Optional[int] = field(
+        default=60,
+        metadata={"help": "Specify the maximum label"},
     )
 
 
@@ -433,7 +447,9 @@ def main():
             # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.unique
             # label_list = raw_datasets["train"].unique("label")
             # label_list.sort()  # Let's sort it for determinism
-            label_list = [i for i in range(0, 60 + 1)]
+            label_list = [
+                i for i in range(model_args.min_label, model_args.max_label + 1)
+            ]
             num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
@@ -554,16 +570,23 @@ def main():
                     for label in examples["label"]
                 ]
             else:
-                result["label"] = [
-                    (
-                        label_to_id[score_converter(prompt_id, label)]
-                        if label != -1
-                        else -1
-                    )
-                    for label, prompt_id in zip(
-                        examples["label"], examples["prompt_id"]
-                    )
-                ]
+                if data_args.dataset_source == "dim":
+                    result["label"] = [
+                        label_to_id[label] for label in examples["label"]
+                    ]
+
+                # TODO: handle "folds", "holistic"
+                else:
+                    result["label"] = [
+                        (
+                            label_to_id[score_converter(prompt_id, label)]
+                            if label != -1
+                            else -1
+                        )
+                        for label, prompt_id in zip(
+                            examples["label"], examples["prompt_id"]
+                        )
+                    ]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
@@ -770,11 +793,6 @@ def main():
         trainer.push_to_hub(**kwargs)
     else:
         trainer.create_model_card(**kwargs)
-
-
-def _mp_fn(index):
-    # For xla_spawn (TPUs)
-    main()
 
 
 if __name__ == "__main__":
