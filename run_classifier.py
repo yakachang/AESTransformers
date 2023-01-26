@@ -6,7 +6,7 @@ import sys
 import datasets
 import numpy as np
 
-from datasets import load_dataset, load_metric
+from datasets import load_dataset
 import transformers
 from transformers import (
     AutoConfig,
@@ -15,7 +15,6 @@ from transformers import (
     DataCollatorWithPadding,
     EvalPrediction,
     HfArgumentParser,
-    PretrainedConfig,
     Trainer,
     TrainingArguments,
     EarlyStoppingCallback,
@@ -134,15 +133,7 @@ def main():
     # In distributed training,
     # the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    if data_args.task_name is not None:
-        # Downloading and loading a dataset from the hub.
-        raw_datasets = load_dataset(
-            "glue",
-            data_args.task_name,
-            cache_dir=model_args.cache_dir,
-            use_auth_token=True if model_args.use_auth_token else None,
-        )
-    elif data_args.dataset_name is not None:
+    if data_args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
             data_args.dataset_name,
@@ -196,30 +187,19 @@ def main():
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
     # Labels
-    if data_args.task_name is not None:
-        is_regression = data_args.task_name == "stsb"
-        if not is_regression:
-            label_list = raw_datasets["train"].features["label"].names
-            num_labels = len(label_list)
-        else:
-            num_labels = 1
+    is_regression = raw_datasets["train"].features["label"].dtype in [
+        "float32",
+        "float64",
+    ]
+    if is_regression:
+        num_labels = 1
     else:
-        # Trying to have good defaults here, don't hesitate to tweak to your needs.
-        is_regression = raw_datasets["train"].features["label"].dtype in [
-            "float32",
-            "float64",
-        ]
-        if is_regression:
-            num_labels = 1
-        else:
-            # A useful fast method:
-            # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.unique
-            # label_list = raw_datasets["train"].unique("label")
-            # label_list.sort()  # Let's sort it for determinism
-            label_list = [
-                i for i in range(model_args.min_label, model_args.max_label + 1)
-            ]
-            num_labels = len(label_list)
+        # A useful fast method:
+        # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.unique
+        # label_list = raw_datasets["train"].unique("label")
+        # label_list.sort()  # Let's sort it for determinism
+        label_list = [i for i in range(model_args.min_label, model_args.max_label + 1)]
+        num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
     #
@@ -231,7 +211,6 @@ def main():
         if model_args.config_name
         else model_args.model_name_or_path,
         num_labels=num_labels,
-        finetuning_task=data_args.task_name,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
@@ -257,32 +236,11 @@ def main():
 
     # Some models have set the order of the labels to use, so let's make sure we do use it.
     label_to_id = None
-    if (
-        model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
-        and data_args.task_name is not None
-        and not is_regression
-    ):
-        # Some have all caps in their config, some don't.
-        label_name_to_id = {k.lower(): v for k, v in model.config.label2id.items()}
-        if list(sorted(label_name_to_id.keys())) == list(sorted(label_list)):
-            label_to_id = {
-                i: int(label_name_to_id[label_list[i]]) for i in range(num_labels)
-            }
-        else:
-            logger.warning(
-                "Your model seems to have been trained with labels, but not match the dataset: ",
-                f"model labels: {list(sorted(label_name_to_id.keys()))}, "
-                f"dataset labels: {list(sorted(label_list))}."
-                "\nIgnoring the model labels as a result.",
-            )
-    elif data_args.task_name is None and not is_regression:
+    if not is_regression:
         label_to_id = {v: i for i, v in enumerate(label_list)}
 
     if label_to_id is not None:
         model.config.label2id = label_to_id
-        model.config.id2label = {id: label for label, id in config.label2id.items()}
-    elif data_args.task_name is not None and not is_regression:
-        model.config.label2id = {l: i for i, l in enumerate(label_list)}
         model.config.id2label = {id: label for label, id in config.label2id.items()}
 
     if data_args.max_seq_length > tokenizer.model_max_length:
@@ -352,23 +310,15 @@ def main():
             and "validation_matched" not in raw_datasets
         ):
             raise ValueError("--do_eval requires a validation dataset")
-        eval_dataset = raw_datasets[
-            "validation_matched" if data_args.task_name == "mnli" else "validation"
-        ]
+        eval_dataset = raw_datasets["validation"]
         if data_args.max_eval_samples is not None:
             max_eval_samples = min(len(eval_dataset), data_args.max_eval_samples)
             eval_dataset = eval_dataset.select(range(max_eval_samples))
 
-    if (
-        training_args.do_predict
-        or data_args.task_name is not None
-        or data_args.test_file is not None
-    ):
+    if training_args.do_predict or data_args.test_file is not None:
         if "test" not in raw_datasets and "test_matched" not in raw_datasets:
             raise ValueError("--do_predict requires a test dataset")
-        predict_dataset = raw_datasets[
-            "test_matched" if data_args.task_name == "mnli" else "test"
-        ]
+        predict_dataset = raw_datasets["test"]
         if data_args.max_predict_samples is not None:
             max_predict_samples = min(
                 len(predict_dataset), data_args.max_predict_samples
@@ -380,24 +330,13 @@ def main():
         for index in random.sample(range(len(train_dataset)), 3):
             logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
 
-    # # Get the metric function
-    if data_args.task_name is not None:
-        metric = load_metric("glue", data_args.task_name)
-    else:
-        metric = load_metric("accuracy")
-
     # You can define your custom compute_metrics function.
     # It takes an `EvalPrediction` object (a namedtuple with a
     # predictions and label_ids field) and has to return a dictionary string to float.
     def compute_metrics(p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
         preds = np.squeeze(preds) if is_regression else np.argmax(preds, axis=1)
-        if data_args.task_name is not None:
-            result = metric.compute(predictions=preds, references=p.label_ids)
-            if len(result) > 1:
-                result["combined_score"] = np.mean(list(result.values())).item()
-            return result
-        elif is_regression:
+        if is_regression:
             return {"mse": ((preds - p.label_ids) ** 2).mean().item()}
         else:
             return {"accuracy": (preds == p.label_ids).astype(np.float32).mean().item()}
@@ -451,18 +390,8 @@ def main():
         logger.info("*** Evaluate ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
-        tasks = [data_args.task_name]
+        tasks = [None]
         eval_datasets = [eval_dataset]
-        if data_args.task_name == "mnli":
-            tasks.append("mnli-mm")
-            valid_mm_dataset = raw_datasets["validation_mismatched"]
-            if data_args.max_eval_samples is not None:
-                max_eval_samples = min(
-                    len(valid_mm_dataset), data_args.max_eval_samples
-                )
-                valid_mm_dataset = valid_mm_dataset.select(range(max_eval_samples))
-            eval_datasets.append(valid_mm_dataset)
-            combined = {}
 
         for eval_dataset, task in zip(eval_datasets, tasks):
             metrics = trainer.evaluate(eval_dataset=eval_dataset)
@@ -474,25 +403,15 @@ def main():
             )
             metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
 
-            if task == "mnli-mm":
-                metrics = {k + "_mm": v for k, v in metrics.items()}
-            if task is not None and "mnli" in task:
-                combined.update(metrics)
-
             trainer.log_metrics("eval", metrics)
-            trainer.save_metrics(
-                "eval", combined if task is not None and "mnli" in task else metrics
-            )
+            trainer.save_metrics(metrics)
 
     if training_args.do_predict:
         logger.info("*** Predict ***")
 
         # Loop to handle MNLI double evaluation (matched, mis-matched)
-        tasks = [data_args.task_name]
+        tasks = [None]
         predict_datasets = [predict_dataset]
-        if data_args.task_name == "mnli":
-            tasks.append("mnli-mm")
-            predict_datasets.append(raw_datasets["test_mismatched"])
 
         for predict_dataset, task in zip(predict_datasets, tasks):
             # Removing the `label` columns because it contains -1 and Trainer won't like that.
@@ -524,11 +443,6 @@ def main():
         "finetuned_from": model_args.model_name_or_path,
         "tasks": "text-classification",
     }
-    if data_args.task_name is not None:
-        kwargs["language"] = "en"
-        kwargs["dataset_tags"] = "glue"
-        kwargs["dataset_args"] = data_args.task_name
-        kwargs["dataset"] = f"GLUE {data_args.task_name.upper()}"
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)

@@ -2,19 +2,6 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-task_to_keys = {
-    "cola": ("sentence", None),
-    "mnli": ("premise", "hypothesis"),
-    "mrpc": ("sentence1", "sentence2"),
-    "qnli": ("question", "sentence"),
-    "qqp": ("question1", "question2"),
-    "rte": ("sentence1", "sentence2"),
-    "sst2": ("sentence", None),
-    "stsb": ("sentence1", "sentence2"),
-    "wnli": ("sentence1", "sentence2"),
-}
-
-
 @dataclass
 class DataTrainingArguments:
     """
@@ -25,13 +12,6 @@ class DataTrainingArguments:
     the command line.
     """
 
-    task_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "The name of the task to train on: "
-            + ", ".join(task_to_keys.keys())
-        },
-    )
     dataset_name: Optional[str] = field(
         default=None,
         metadata={"help": "The name of the dataset to use (via the datasets library)."},
@@ -115,14 +95,7 @@ class DataTrainingArguments:
     )
 
     def __post_init__(self):
-        if self.task_name is not None:
-            self.task_name = self.task_name.lower()
-            if self.task_name not in task_to_keys.keys():
-                raise ValueError(
-                    "Unknown task, you should pick one in "
-                    + ",".join(task_to_keys.keys())
-                )
-        elif self.dataset_name is not None:
+        if self.dataset_name is not None:
             pass
         elif self.train_file is None or self.validation_file is None:
             raise ValueError(
