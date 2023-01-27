@@ -17,6 +17,11 @@ path_to_model="models/Original/base/sets/${fold_name}/lr${lr}-b${batch_size}a${g
 model_dir="${path_to_model}/${pretrained}-${max_len}-${dim}-mod"
 data_dir="../../../data/ASAP++/Original/${fold_name}/${dim}"
 
+if [[ -d "${model_dir}" ]]; then
+    echo "${model_dir} exists! Skip training."
+    exit
+fi
+
 python ../../../run_classifier.py \
     --per_device_train_batch_size "${batch_size}" \
     --per_device_eval_batch_size "${batch_size}" \

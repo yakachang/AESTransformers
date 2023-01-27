@@ -1,11 +1,11 @@
 #!/bin/bash
 
-fold_name="set2"
+fold_name="set1"
 # Set 1: "label", "content", "organization", "word_choice", "sentence_fluency", "conventions"
 # Set 2: "label", "content", "prompt_adherence", "language", "narrativity"
 # dim="content"
-min_label=0
-max_label=4
+min_label=1
+max_label=6
 
 pretrained="bert-base-cased"
 max_len=512
@@ -15,7 +15,7 @@ grad_acc=1
 
 # 'content' 'organization' 'word_choice' 'sentence_fluency' 'conventions'
 # 'content' 'prompt_adherence' 'language' 'narrativity'
-for dim in 'content' 'prompt_adherence' 'language' 'narrativity'; do
+for dim in 'content' 'organization' 'word_choice' 'sentence_fluency' 'conventions'; do
 
     setting="lr${lr}-b${batch_size}a${grad_acc}-ada-fp16"
     path_to_model="models/Original/base/sets/${fold_name}/${setting}"
