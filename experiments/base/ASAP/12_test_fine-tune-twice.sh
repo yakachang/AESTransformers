@@ -10,7 +10,7 @@ path_to_model="models/Original/base/sets/${fold_name}/lr${lr}-b${batch_size}a${g
 model_dir="${path_to_model}/${pretrained}-${max_len}-mod"
 data_dir="../../../data/ASAP/folds/Test-ori/${fold_name}"
 
-out_dir="${path_to_model}/${pretrained}-${max_len}-b${batch_size}a${grad_acc}-out"
+out_dir="${path_to_model}/${pretrained}-${max_len}-out"
 mkdir -p "${out_dir}/probs"
 mkdir -p "${out_dir}/evals"
 mkdir -p "${out_dir}/cms"
