@@ -18,6 +18,7 @@ Then, from the project root, run:
 ```bash
 pip install -r requirements.txt
 pip install git+https://github.com/huggingface/transformers
+python -m spacy download en_core_web_sm
 ```
 
 For further development or modification, we recommend installing `pre-commit`:
