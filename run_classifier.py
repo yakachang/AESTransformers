@@ -28,6 +28,7 @@ from transformers.utils.versions import require_version
 from processors import score_converter
 from args_data import DataTrainingArguments
 from args_model import ModelArguments
+from trainer import WCETrainer
 
 import wandb
 
@@ -310,16 +311,28 @@ def main():
         data_collator = None
 
     # Initialize our Trainer
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_dataset if training_args.do_train else None,
-        eval_dataset=eval_dataset if training_args.do_eval else None,
-        compute_metrics=compute_metrics,
-        tokenizer=tokenizer,
-        data_collator=data_collator,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
-    )
+    if model_args.trainer_name == "wce":
+        trainer = WCETrainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset if training_args.do_train else None,
+            eval_dataset=eval_dataset if training_args.do_eval else None,
+            compute_metrics=compute_metrics,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        )
+    else:
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset if training_args.do_train else None,
+            eval_dataset=eval_dataset if training_args.do_eval else None,
+            compute_metrics=compute_metrics,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        )
 
     # Training
     if training_args.do_train:
