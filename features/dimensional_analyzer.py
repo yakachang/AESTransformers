@@ -24,27 +24,32 @@ def analyze_text(text: str) -> Dict:
     doc = nlp(text)
 
     # GEC
-    grammar_error_types = grammar_detector.gec(text)
+    grammar_error_types, edits = grammar_detector.gec(text)
 
     # Grammar Pattern
     grammar_patterns = pattern_detector.pattern_detector(doc)
 
     # Vocabularies #
-    vocab_analysis = vocab_analyzer.get_vocab_analysis(
-        doc, grammar_error_types, grammar_patterns, STOP_WORDS
-    )
+    vocab_analysis = vocab_analyzer.get_vocab_analysis(doc, STOP_WORDS)
 
     # Grammars #
-    grammar_analysis = grammar_analyzer.get_grammar_analysis(grammar_error_types, doc)
+    grammar_analysis = grammar_analyzer.get_grammar_analysis(
+        grammar_error_types, doc, STOP_WORDS
+    )
 
     # Sentence Structure #
-    sent_analysis = sent_analyzer.get_sent_analysis(doc, grammar_error_types)
+    sent_analysis = sent_analyzer.get_sent_analysis(doc)
 
     return {
         "vocab": {**vocab_analysis},
-        # "grammar_pattern_num": sum(grammar_patterns.values()),
-        "grammar": {**grammar_analysis},
+        "grammar_patterns": {
+            "num": sum(grammar_patterns.values()),
+            "types": grammar_patterns,
+        },
+        "grammar": {
+            **grammar_analysis,
+            "grammar_error_types": grammar_error_types,
+            "gec_edits": edits,
+        },
         "sent": {**sent_analysis},
-        "grammar_patterns": grammar_patterns,
-        "grammar_error_types": grammar_error_types,
     }

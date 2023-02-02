@@ -1,13 +1,13 @@
-ERROR_TYPES = [
-    "Collocation",
-    "Form",
-    "Conjunction",
-    "Preposition",
-    "Punctuation",
-    "Spelling",
-    "Word Order",
-    "Other",
-]
+# ERROR_TYPES = [
+#     "Collocation",
+#     "Form",
+#     "Conjunction",
+#     "Preposition",
+#     "Punctuation",
+#     "Spelling",
+#     "Word Order",
+#     "Other",
+# ]
 
 
 def get_vocabs(doc, STOP_WORDS):
@@ -32,12 +32,12 @@ def get_word_count(doc):
     return len(words)
 
 
-def get_usage_error_num(grammar_error_types):
+# def get_usage_error_num(grammar_error_types):
 
-    usage_error_num = 0
+#     usage_error_num = 0
 
-    for type in ERROR_TYPES:
-        if type not in ["Form", "Conjunction"]:
-            usage_error_num += grammar_error_types.get(type, 0)
+#     for type in ERROR_TYPES:
+#         if type not in ["Form", "Conjunction"]:
+#             usage_error_num += grammar_error_types.get(type, 0)
 
-    return usage_error_num
+#     return usage_error_num

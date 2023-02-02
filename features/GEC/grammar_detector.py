@@ -48,6 +48,6 @@ def gec(text: str):
 
         grammar_error_list = [item["type"] for item in edits]
 
-        return dict(Counter(grammar_error_list))
+        return dict(Counter(grammar_error_list)), edits
 
     return {}
