@@ -24,8 +24,9 @@ mkdir -p "${out_dir}/evals"
 mkdir -p "${out_dir}/cms"
 
 # Set 1: 'content' 'organization' 'word_choice' 'sentence_fluency' 'conventions'
-# Set 2: 'content' 'prompt_adherence' 'language' 'narrativity'
 for dim in 'content' 'organization' 'word_choice' 'sentence_fluency' 'conventions'; do
+# Set 2: 'content' 'prompt_adherence' 'language' 'narrativity'
+# for dim in 'content' 'prompt_adherence' 'language' 'narrativity'; do
 
     prob_file="${out_dir}/probs/test_${dim}.prob"
     if [[ ! -f "${prob_file}" ]]; then
