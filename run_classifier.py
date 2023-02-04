@@ -213,12 +213,22 @@ def main():
 
     def preprocess_function(examples):
         # Tokenize the texts
-        result = tokenizer(
-            examples["text"],
-            padding="max_length",
-            max_length=max_seq_length,
-            truncation=True,
-        )
+        if "features" in examples:
+            print(f'"features" in examples: {"features" in examples}')
+            result = tokenizer(
+                examples["text"],
+                examples["features"],
+                padding="max_length",
+                max_length=max_seq_length,
+                truncation=True,
+            )
+        else:
+            result = tokenizer(
+                examples["text"],
+                padding="max_length",
+                max_length=max_seq_length,
+                truncation=True,
+            )
 
         # Map labels to IDs (not necessary for GLUE tasks)
         if label_to_id is not None and "label" in examples:
