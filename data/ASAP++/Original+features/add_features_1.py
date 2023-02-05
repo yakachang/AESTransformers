@@ -97,7 +97,7 @@ def main():
 
     for set_id in ["set1", "set2"]:
         for dim in dim_mapper[set_id]:
-            for datatype in ["train", "dev"]:
+            for datatype in ["train", "dev", "test"]:
                 df = pd.read_json(
                     f"../Original/{set_id}/{dim}/{datatype}.json", lines=True
                 )

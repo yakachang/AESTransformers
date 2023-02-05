@@ -214,7 +214,6 @@ def main():
     def preprocess_function(examples):
         # Tokenize the texts
         if "features" in examples:
-            print(f'"features" in examples: {"features" in examples}')
             result = tokenizer(
                 examples["text"],
                 examples["features"],

@@ -16,6 +16,7 @@ grad_acc=1
 # 'content' 'organization' 'word_choice' 'sentence_fluency' 'conventions'
 # 'content' 'prompt_adherence' 'language' 'narrativity'
 for dim in 'word_choice' 'sentence_fluency' 'conventions'; do
+# for dim in 'language'; do
 
     setting="lr${lr}-b${batch_size}a${grad_acc}-ada-fp16"
     path_to_model="models/Original/base/sets/${fold_name}/${setting}"
