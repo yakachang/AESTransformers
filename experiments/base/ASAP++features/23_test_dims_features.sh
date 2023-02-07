@@ -19,9 +19,9 @@ for dim in 'word_choice' 'sentence_fluency' 'conventions'; do
 # for dim in 'language'; do
 
     setting="lr${lr}-b${batch_size}a${grad_acc}-ada-fp16"
-    path_to_model="models/Original/base/sets/${fold_name}/${setting}"
+    path_to_model="models/Original+features/base/sets_add_features2/${fold_name}/${setting}"
     model_dir="${path_to_model}/${pretrained}-${max_len}-${dim}-mod"
-    data_dir="../../../data/ASAP++/Original+features/${fold_name}/${dim}"
+    data_dir="../../../data/ASAP++/Original+features/${fold_name}/${dim}_2"
 
     out_dir="${path_to_model}/${pretrained}-${max_len}-${dim}-out"
     mkdir -p "${out_dir}"
