@@ -1,8 +1,6 @@
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
-from typing import Optional
 
 import datasets
 import evaluate
@@ -31,6 +29,9 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
+from seq2seq.args_data import DataTrainingArguments
+from seq2seq.args_model import ModelArguments
+
 import wandb
 
 username = "yakachang"  # Input github username
@@ -58,253 +59,18 @@ MULTILINGUAL_TOKENIZERS = [
 ]
 
 
-@dataclass
-class ModelArguments:
-    """
-    Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
-    """
-
-    model_name_or_path: str = field(
-        metadata={
-            "help": "Path to pretrained model or model identifier from huggingface.co/models"
-        }
-    )
-    config_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "Pretrained config name or path if not the same as model_name"
-        },
-    )
-    tokenizer_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "Pretrained tokenizer name or path if not the same as model_name"
-        },
-    )
-    cache_dir: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "Where to store the pretrained models downloaded from huggingface.co"
-        },
-    )
-    use_fast_tokenizer: bool = field(
-        default=True,
-        metadata={
-            "help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."
-        },
-    )
-    model_revision: str = field(
-        default="main",
-        metadata={
-            "help": "The specific model version to use (can be a branch name, tag name or commit id)."
-        },
-    )
-    use_auth_token: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Will use the token generated when running `huggingface-cli login` (necessary to use this script "
-                "with private models)."
-            )
-        },
-    )
-
-
-@dataclass
-class DataTrainingArguments:
-    """
-    Arguments pertaining to what data we are going to input our model for training and eval.
-    """
-
-    source_lang: str = field(
-        default=None, metadata={"help": "Source language id for translation."}
-    )
-    target_lang: str = field(
-        default=None, metadata={"help": "Target language id for translation."}
-    )
-
-    dataset_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "The name of the dataset to use (via the datasets library)."},
-    )
-    dataset_config_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "The configuration name of the dataset to use (via the datasets library)."
-        },
-    )
-    train_file: Optional[str] = field(
-        default=None, metadata={"help": "The input training data file (a jsonlines)."}
-    )
-    validation_file: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "An optional input evaluation data file to evaluate the metrics (sacrebleu) on a jsonlines file."
-        },
-    )
-    test_file: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "An optional input test data file to evaluate the metrics (sacrebleu) on a jsonlines file."
-        },
-    )
-    overwrite_cache: bool = field(
-        default=False,
-        metadata={"help": "Overwrite the cached training and evaluation sets"},
-    )
-    preprocessing_num_workers: Optional[int] = field(
-        default=None,
-        metadata={"help": "The number of processes to use for the preprocessing."},
-    )
-    max_source_length: Optional[int] = field(
-        default=1024,
-        metadata={
-            "help": (
-                "The maximum total input sequence length after tokenization. Sequences longer "
-                "than this will be truncated, sequences shorter will be padded."
-            )
-        },
-    )
-    max_target_length: Optional[int] = field(
-        default=128,
-        metadata={
-            "help": (
-                "The maximum total sequence length for target text after tokenization. Sequences longer "
-                "than this will be truncated, sequences shorter will be padded."
-            )
-        },
-    )
-    val_max_target_length: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "The maximum total sequence length for validation target text after tokenization. Sequences longer "
-                "than this will be truncated, sequences shorter will be padded. Will default to `max_target_length`."
-                "This argument is also used to override the ``max_length`` param of ``model.generate``, which is used "
-                "during ``evaluate`` and ``predict``."
-            )
-        },
-    )
-    pad_to_max_length: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Whether to pad all samples to model maximum sentence length. "
-                "If False, will pad the samples dynamically when batching to the maximum length in the batch. More "
-                "efficient on GPU but very bad for TPU."
-            )
-        },
-    )
-    max_train_samples: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "For debugging purposes or quicker training, truncate the number of training examples to this "
-                "value if set."
-            )
-        },
-    )
-    max_eval_samples: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "For debugging purposes or quicker training, truncate the number of evaluation examples to this "
-                "value if set."
-            )
-        },
-    )
-    max_predict_samples: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "For debugging purposes or quicker training, truncate the number of prediction examples to this "
-                "value if set."
-            )
-        },
-    )
-    num_beams: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
-                "which is used during ``evaluate`` and ``predict``."
-            )
-        },
-    )
-    ignore_pad_token_for_loss: bool = field(
-        default=True,
-        metadata={
-            "help": "Whether to ignore the tokens corresponding to padded labels in the loss computation or not."
-        },
-    )
-    source_prefix: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "A prefix to add before every source text (useful for T5 models)."
-        },
-    )
-    forced_bos_token: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": (
-                "The token to force as the first generated token after the :obj:`decoder_start_token_id`.Useful for"
-                " multilingual models like :doc:`mBART <../model_doc/mbart>` where the first generated token needs to"
-                " be the target language token.(Usually it is the target language token)"
-            )
-        },
-    )
-
-    def __post_init__(self):
-        if (
-            self.dataset_name is None
-            and self.train_file is None
-            and self.validation_file is None
-        ):
-            raise ValueError(
-                "Need either a dataset name or a training/validation file."
-            )
-        elif self.source_lang is None or self.target_lang is None:
-            raise ValueError(
-                "Need to specify the source language and the target language."
-            )
-
-        # accepting both json and jsonl file extensions, as
-        # many jsonlines files actually have a .json extension
-        valid_extensions = ["json", "jsonl"]
-
-        if self.train_file is not None:
-            extension = self.train_file.split(".")[-1]
-            assert (
-                extension in valid_extensions
-            ), "`train_file` should be a jsonlines file."
-        if self.validation_file is not None:
-            extension = self.validation_file.split(".")[-1]
-            assert (
-                extension in valid_extensions
-            ), "`validation_file` should be a jsonlines file."
-        if self.val_max_target_length is None:
-            self.val_max_target_length = self.max_target_length
-
-
 def main():
-    # See all possible arguments in src/transformers/training_args.py
-    # or by passing the --help flag to this script.
-    # We now keep distinct sets of args, for a cleaner separation of concerns.
 
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments)
     )
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        # If we pass only one argument to the script and it's the path to a json file,
-        # let's parse it to get our arguments.
         model_args, data_args, training_args = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
-    # information sent is the one passed as arguments along with your Python/PyTorch versions.
     send_example_telemetry("run_translation", model_args, data_args)
 
     # Setup logging
@@ -315,7 +81,6 @@ def main():
     )
 
     if training_args.should_log:
-        # The default of training_args.log_level is passive, so we set log level at info here to have that default.
         transformers.utils.logging.set_verbosity_info()
 
     log_level = training_args.get_process_log_level()
@@ -331,18 +96,6 @@ def main():
         + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
     logger.info(f"Training/evaluation parameters {training_args}")
-
-    if data_args.source_prefix is None and model_args.model_name_or_path in [
-        "t5-small",
-        "t5-base",
-        "t5-large",
-        "t5-3b",
-        "t5-11b",
-    ]:
-        logger.warning(
-            "You're running a t5 model but didn't provide a source prefix, which is expected, e.g. with "
-            "`--source_prefix 'translate English to German: ' `"
-        )
 
     # Detecting last checkpoint.
     last_checkpoint = None
@@ -368,50 +121,26 @@ def main():
     # Set seed before initializing model.
     set_seed(training_args.seed)
 
-    # Get the datasets: you can either provide your own JSON training and evaluation files (see below)
-    # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
-    # (the dataset will be downloaded automatically from the datasets Hub).
-    #
-    # For translation, only JSON files are supported, with one field named "translation" containing two keys for the
-    # source and target languages (unless you adapt what follows).
-    #
-    # In distributed training, the load_dataset function guarantee that only one local process can concurrently
-    # download the dataset.
-    if data_args.dataset_name is not None:
-        # Downloading and loading a dataset from the hub.
-        raw_datasets = load_dataset(
-            data_args.dataset_name,
-            data_args.dataset_config_name,
-            cache_dir=model_args.cache_dir,
-            use_auth_token=True if model_args.use_auth_token else None,
-        )
-    else:
-        data_files = {}
-        if data_args.train_file is not None:
-            data_files["train"] = data_args.train_file
-            extension = data_args.train_file.split(".")[-1]
-        if data_args.validation_file is not None:
-            data_files["validation"] = data_args.validation_file
-            extension = data_args.validation_file.split(".")[-1]
-        if data_args.test_file is not None:
-            data_files["test"] = data_args.test_file
-            extension = data_args.test_file.split(".")[-1]
-        print(f"extension: {extension}")
-        print(f"data_files: {data_files}")
-        raw_datasets = load_dataset(
-            extension,
-            data_files=data_files,
-            cache_dir=model_args.cache_dir,
-            use_auth_token=True if model_args.use_auth_token else None,
-        )
-    # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
-    # https://huggingface.co/docs/datasets/loading_datasets.html.
+    # Load Data
+    data_files = {}
+    if data_args.train_file is not None:
+        data_files["train"] = data_args.train_file
+        extension = data_args.train_file.split(".")[-1]
+    if data_args.validation_file is not None:
+        data_files["validation"] = data_args.validation_file
+        extension = data_args.validation_file.split(".")[-1]
+    if data_args.test_file is not None:
+        data_files["test"] = data_args.test_file
+        extension = data_args.test_file.split(".")[-1]
+    print(f"extension: {extension}")
+    print(f"data_files: {data_files}")
+    raw_datasets = load_dataset(
+        extension,
+        data_files=data_files,
+        cache_dir=model_args.cache_dir,
+        use_auth_token=True if model_args.use_auth_token else None,
+    )
 
-    # Load pretrained model and tokenizer
-    #
-    # Distributed training:
-    # The .from_pretrained methods guarantee that only one local process can concurrently
-    # download model & vocab.
     config = AutoConfig.from_pretrained(
         model_args.config_name
         if model_args.config_name
@@ -438,8 +167,6 @@ def main():
         use_auth_token=True if model_args.use_auth_token else None,
     )
 
-    # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
-    # on a small vocab and want a smaller embedding size, remove this test.
     embedding_size = model.get_input_embeddings().weight.shape[0]
     if len(tokenizer) > embedding_size:
         model.resize_token_embeddings(len(tokenizer))
@@ -462,7 +189,7 @@ def main():
             "Make sure that `config.decoder_start_token_id` is correctly defined"
         )
 
-    prefix = data_args.source_prefix if data_args.source_prefix is not None else ""
+    # prefix = data_args.source_prefix if data_args.source_prefix is not None else ""
 
     # Preprocessing the datasets.
     # We need to tokenize inputs and targets.
@@ -478,8 +205,6 @@ def main():
         )
         return
 
-    # For translation we set the codes of our source and target languages (only useful for mBART, the others will
-    # ignore those attributes).
     if isinstance(tokenizer, tuple(MULTILINGUAL_TOKENIZERS)):
         assert (
             data_args.target_lang is not None and data_args.source_lang is not None
@@ -491,8 +216,6 @@ def main():
         tokenizer.src_lang = data_args.source_lang
         tokenizer.tgt_lang = data_args.target_lang
 
-        # For multilingual translation models like mBART-50 and M2M100 we need to force the target language token
-        # as the first generated token. We ask the user to explicitly provide this as --forced_bos_token argument.
         forced_bos_token_id = (
             tokenizer.lang_code_to_id[data_args.forced_bos_token]
             if data_args.forced_bos_token is not None
@@ -500,7 +223,7 @@ def main():
         )
         model.config.forced_bos_token_id = forced_bos_token_id
 
-    # Get the language codes for input/target.
+    # Get the keys for input/target.
     source_lang = data_args.source_lang.split("_")[0]
     target_lang = data_args.target_lang.split("_")[0]
 
@@ -517,9 +240,15 @@ def main():
         )
 
     def preprocess_function(examples):
-        inputs = [ex[source_lang] for ex in examples["aes"]]
+        inputs = [
+            (
+                f"Give a score according to the {ex[source_lang].split(':', 1)[0]} of the essay: "
+                f"{ex[source_lang].split(':', 1)[1]}"
+            )
+            for ex in examples["aes"]
+        ]
         targets = [str(ex[target_lang]) for ex in examples["aes"]]
-        inputs = [prefix + inp for inp in inputs]
+
         model_inputs = tokenizer(
             inputs,
             max_length=data_args.max_source_length,
@@ -662,7 +391,7 @@ def main():
         compute_metrics=compute_metrics
         if training_args.predict_with_generate
         else None,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=model_args.patience)],
     )
 
     # Training
