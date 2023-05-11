@@ -28,7 +28,7 @@ from transformers.utils.versions import require_version
 from processors import score_converter
 from args_data import DataTrainingArguments
 from args_model import ModelArguments
-from trainer import WCETrainer
+from text_cls.trainer import WCETrainer
 
 import wandb
 
