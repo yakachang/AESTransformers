@@ -177,11 +177,11 @@ def main():
     ):
         if isinstance(tokenizer, MBartTokenizer):
             model.config.decoder_start_token_id = tokenizer.lang_code_to_id[
-                data_args.target_lang
+                data_args.target_key
             ]
         else:
             model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
-                data_args.target_lang
+                data_args.target_key
             )
 
     if model.config.decoder_start_token_id is None:
@@ -206,15 +206,13 @@ def main():
         return
 
     if isinstance(tokenizer, tuple(MULTILINGUAL_TOKENIZERS)):
-        assert (
-            data_args.target_lang is not None and data_args.source_lang is not None
-        ), (
-            f"{tokenizer.__class__.__name__} is a multilingual tokenizer which requires --source_lang and "
-            "--target_lang arguments."
+        assert data_args.target_key is not None and data_args.source_key is not None, (
+            f"{tokenizer.__class__.__name__} is a multilingual tokenizer which requires --source_key and "
+            "--target_key arguments."
         )
 
-        tokenizer.src_lang = data_args.source_lang
-        tokenizer.tgt_lang = data_args.target_lang
+        tokenizer.src_lang = data_args.source_key
+        tokenizer.tgt_lang = data_args.target_key
 
         forced_bos_token_id = (
             tokenizer.lang_code_to_id[data_args.forced_bos_token]
@@ -224,8 +222,8 @@ def main():
         model.config.forced_bos_token_id = forced_bos_token_id
 
     # Get the keys for input/target.
-    source_lang = data_args.source_lang.split("_")[0]
-    target_lang = data_args.target_lang.split("_")[0]
+    source_key = data_args.source_key.split("_")[0]
+    target_key = data_args.target_key.split("_")[0]
 
     # Temporarily set max_target_length for training.
     max_target_length = data_args.max_target_length
@@ -242,12 +240,12 @@ def main():
     def preprocess_function(examples):
         inputs = [
             (
-                f"Give a score according to the {ex[source_lang].split(':', 1)[0]} of the essay: "
-                f"{ex[source_lang].split(':', 1)[1]}"
+                f"Give a score according to the {ex[source_key].split(':', 1)[0]} of the essay: "
+                f"{ex[source_key].split(':', 1)[1]}"
             )
             for ex in examples["aes"]
         ]
-        targets = [str(ex[target_lang]) for ex in examples["aes"]]
+        targets = [str(ex[target_key]) for ex in examples["aes"]]
 
         model_inputs = tokenizer(
             inputs,
@@ -494,7 +492,7 @@ def main():
             kwargs["dataset"] = data_args.dataset_name
 
     languages = [
-        l for l in [data_args.source_lang, data_args.target_lang] if l is not None
+        l for l in [data_args.source_key, data_args.target_key] if l is not None
     ]
     if len(languages) > 0:
         kwargs["language"] = languages

@@ -8,10 +8,10 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
 
-    source_lang: str = field(
+    source_key: str = field(
         default=None, metadata={"help": "Source language id for translation."}
     )
-    target_lang: str = field(
+    target_key: str = field(
         default=None, metadata={"help": "Target language id for translation."}
     )
 
@@ -155,7 +155,7 @@ class DataTrainingArguments:
             raise ValueError(
                 "Need either a dataset name or a training/validation file."
             )
-        elif self.source_lang is None or self.target_lang is None:
+        elif self.source_key is None or self.target_key is None:
             raise ValueError(
                 "Need to specify the source language and the target language."
             )

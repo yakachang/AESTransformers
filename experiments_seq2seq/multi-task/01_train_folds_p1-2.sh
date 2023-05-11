@@ -5,10 +5,10 @@ set -ex
 seed=3435
 lr=2e-5
 max_len=512
-batch_size=4
+batch_size=8
 grad_acc=1
 max_epoch=20
-# patience=5
+patience=5
 pretrained="google/flan-t5-small"
 source_key="text"
 target_key="label"
@@ -25,17 +25,18 @@ do
         exit
     fi
 
-    # --do_train \
-    # --do_eval \
     # --overwrite_output_dir \
     python ../../run_seq2seq.py \
         --seed ${seed} \
+        --do_train \
+        --do_eval \
         --learning_rate "${lr}" \
         --max_source_length=${max_len} \
         --per_device_train_batch_size=${batch_size} \
         --per_device_eval_batch_size=${batch_size} \
         --gradient_accumulation_steps=${grad_acc} \
         --num_train_epochs=${max_epoch} \
+        --patience=${patience} \
         --logging_steps=1000 \
         --save_steps=5000 \
         --eval_steps=5000 \
@@ -44,8 +45,8 @@ do
         --save_strategy="steps" \
         --predict_with_generate \
         --model_name_or_path "${pretrained}" \
-        --source_lang "${source_key}" \
-        --target_lang "${target_key}" \
+        --source_key "${source_key}" \
+        --target_key "${target_key}" \
         --train_file "${train_file}" \
         --validation_file "${dev_file}" \
         --output_dir "${model_dir}" \
