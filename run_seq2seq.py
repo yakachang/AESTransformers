@@ -32,6 +32,8 @@ from transformers.utils.versions import require_version
 from seq2seq.args_data import DataTrainingArguments
 from seq2seq.args_model import ModelArguments
 
+# from seq2seq.trainer import CustomTrainer
+
 import wandb
 
 username = "yakachang"  # Input github username
@@ -132,8 +134,6 @@ def main():
     if data_args.test_file is not None:
         data_files["test"] = data_args.test_file
         extension = data_args.test_file.split(".")[-1]
-    print(f"extension: {extension}")
-    print(f"data_files: {data_files}")
     raw_datasets = load_dataset(
         extension,
         data_files=data_files,
@@ -371,6 +371,14 @@ def main():
         result = metric.compute(predictions=decoded_preds, references=decoded_labels)
         result = {"bleu": result["score"]}
 
+        # with open("record.txt", "w") as out_file:
+        #     print(f"len(preds[0]): {len(preds[0])}", file=out_file)
+        #     print(f"preds: {preds}", file=out_file)
+        #     print(f"len(labels[0]): {len(labels[0])}", file=out_file)
+        #     print(f"labels: {labels}", file=out_file)
+        #     print(f"decoded_preds[:10]: {decoded_preds[:10]}", file=out_file)
+        #     print(f"decoded_labels[:10]: {decoded_labels[:10]}", file=out_file)
+
         prediction_lens = [
             np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds
         ]
@@ -379,7 +387,7 @@ def main():
         return result
 
     # Initialize our Trainer
-    trainer = Seq2SeqTrainer(
+    trainer = Seq2SeqTrainer(  # CustomTrainer
         model=model,
         args=training_args,
         train_dataset=train_dataset if training_args.do_train else None,

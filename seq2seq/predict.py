@@ -1,7 +1,7 @@
 # import torch
 import argparse
 
-# import numpy as np
+import numpy as np
 import pandas as pd
 
 # from tqdm import tqdm
@@ -36,11 +36,11 @@ def main():
     df_test = pd.read_json(args.in_file, lines=True)
     texts = df_test["text"].tolist()
 
-    # predicts = []
+    predicts = []
 
     texts = iter(texts)
 
-    while batch_lines := tuple(islice(texts, 10)):
+    while batch_lines := tuple(islice(texts, 512)):
 
         inputs = tokenizer(
             list(batch_lines),
@@ -52,20 +52,21 @@ def main():
         output_sequences = model.generate(
             input_ids=inputs["input_ids"],
             attention_mask=inputs["attention_mask"],
-            max_length=1,
+            max_length=2,
             do_sample=False,  # disable sampling to test if batching affects output
         )
-        print(output_sequences)
-        print(tokenizer.batch_decode(output_sequences, skip_special_tokens=True))
-        break
+        predicts.extend(
+            [
+                int(pred)
+                for pred in tokenizer.batch_decode(
+                    output_sequences, skip_special_tokens=True
+                )
+            ]
+        )
 
-    # while batch_lines := tuple(islice(texts, args.batch_size)):
+    probs = np.vstack([p for p in predicts])
 
-    #     predicts.extend(pipe(list(batch_lines)))
-
-    # probs = np.vstack([[p["score"] for p in predict] for predict in predicts])
-
-    # np.savetxt(args.out_file, probs, delimiter=" ", fmt="%.5f")
+    np.savetxt(args.out_file, probs, delimiter=" ", fmt="%i")
 
 
 if __name__ == "__main__":
