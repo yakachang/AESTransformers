@@ -17,8 +17,9 @@ conda install -n aes-transformers ipykernel --update-deps --force-reinstall
 Then, from the project root, run:
 ```bash
 pip install -r requirements.txt
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
 pip install git+https://github.com/huggingface/transformers
-python -m spacy download en_core_web_sm
+pip install protobuf==3.20.*
 ```
 
 For further development or modification, we recommend installing `pre-commit`:
@@ -33,6 +34,6 @@ python -c "import torch; print(torch.__version__); print(torch.cuda.is_available
 
 We should see:
 ```bash
-1.10.1+cu111
+2.0.1
 True
 ```

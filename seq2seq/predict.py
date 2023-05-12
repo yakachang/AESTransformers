@@ -22,6 +22,14 @@ def build_args():
     return args
 
 
+def add_prefix(text):
+
+    trait, text = text.split(":", 1)
+    trait = " ".join(trait.split("_"))
+
+    return f"Give a score according to the {trait} of the essay: {text}"
+
+
 def main():
     args = build_args()
 
@@ -35,6 +43,7 @@ def main():
 
     df_test = pd.read_json(args.in_file, lines=True)
     texts = df_test["text"].tolist()
+    texts = [add_prefix(text) for text in texts]
 
     predicts = []
 

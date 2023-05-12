@@ -237,14 +237,15 @@ def main():
             f"`{model.__class__.__name__}`. This will lead to loss being calculated twice and will take up more memory"
         )
 
+    def add_prefix(text):
+
+        trait, text = text.split(":", 1)
+        trait = " ".join(trait.split("_"))
+
+        return f"Give a score according to the {trait} of the essay: {text}"
+
     def preprocess_function(examples):
-        inputs = [
-            (
-                f"Give a score according to the {ex[source_key].split(':', 1)[0]} of the essay: "
-                f"{ex[source_key].split(':', 1)[1]}"
-            )
-            for ex in examples["aes"]
-        ]
+        inputs = [add_prefix(ex[source_key]) for ex in examples["aes"]]
         targets = [str(ex[target_key]) for ex in examples["aes"]]
 
         model_inputs = tokenizer(
