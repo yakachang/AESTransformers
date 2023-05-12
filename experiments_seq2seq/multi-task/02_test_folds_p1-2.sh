@@ -1,48 +1,69 @@
 #!/bin/bash
 
-fold_name="folds_p1-2"
-fold_id="fold_0"
-trait="content"
+set -ex
 
-# pretrained="google/flan-t5"
-# max_len=512
-# lr=2e-5
-# batch_size=8
-# grad_acc=1
+lr=1e-4
+max_len=512
+batch_size=8
+grad_acc=1
+max_epoch=20
+patience=5
+pretrained="t5-small"
 
-data_dir="../../data/ASAP++/Multi-Task/${fold_name}/${fold_id}"
+for fold_id in "fold_0" "fold_1" "fold_2" "fold_3" "fold_4";
+do
+    data_dir="../../data/ASAP++/Multi-Task/folds_p1-2/${fold_id}"
+    fold_path="folds/${fold_id}/${trait}"
+    setting="epoch${max_epoch}-patience${patience}"
+    base_path="models/${fold_path}/lr${lr}-b${batch_size}a${grad_acc}/${setting}"
+    model_dir="${base_path}/${pretrained}-len${max_len}-mod"
 
-# path_to_model="models/Original/base/sets/${fold_name}/lr${lr}-b${batch_size}a${grad_acc}"
-# model_dir="${path_to_model}/${pretrained}-${max_len}-${trait}-mod"
-model_dir="test-mod"
+    unset -v latest
 
-# out_dir="${path_to_model}/${pretrained}-${max_len}-${trait}-out"
-out_dir="test-out"
-mkdir -p "${out_dir}"
+    for file in "${model_dir}/checkpoints"/*.ckpt; do
+        [[ "${file}" -nt "${latest}" ]] && latest="${file}"
+    done
 
-out_file="${out_dir}/test.prob"
-if [[ ! -f "${out_file}" ]]; then
-HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-python '../../seq2seq/predict.py' \
-    --checkpoint_file "${model_dir}" \
-    --in_file "${data_dir}/test/test_${trait}.jsonl" \
-    --out_file "${out_file}" \
-    --batch_size 64
-fi
+    if [[ -z "${latest}" ]]; then
+        echo "Cannot find any checkpoint in ${model_dir}"
+        continue
+    fi
 
-# eval_file="${out_dir}/eval.test.json"
-# if [[ ! -f "${eval_file}" ]]; then
-# python '../../../evaluate.py' \
-#     --gold_file "${data_dir}/test.json" \
-#     --prob_file "${out_dir}/test.prob" \
-#     --out_file "${eval_file}"
-# fi
+    out_dir="${base_path}/${pretrained}-len${max_len}--out"
+    mkdir -p "${out_dir}/probs"
+    mkdir -p "${out_dir}/evals"
+    mkdir -p "${out_dir}/cms"
 
-# eval_file_cm="${out_dir}/confusion_metrix.png"
-# if [[ ! -f "${eval_file_cm}" ]]; then
-# python '../../../evaluate_cm.py' \
-#     --set_id "${fold_name}" \
-#     --gold_file "${data_dir}/test.json" \
-#     --prob_file "${out_dir}/test.prob" \
-#     --out_file "${eval_file_cm}"
-# fi
+    for trait in "content" "organization" "word_choice" "sentence_fluency" "conventions";
+    do
+        out_file="${out_dir}/probs/test_${trait}.prob"
+        if [[ ! -f "${out_file}" ]]; then
+        HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+        python '../../seq2seq/predict.py' \
+            --checkpoint_file "${model_dir}" \
+            --in_file "${data_dir}/test/test_${trait}.jsonl" \
+            --out_file "${out_file}" \
+            --batch_size 64
+        fi
+
+        eval_file="${out_dir}/evals/eval.test_${trait}.json"
+        if [[ ! -f "${eval_file}" ]]; then
+        python '../../seq2seq/evaluate.py' \
+            --gold_file "${data_dir}/test/test_${trait}.jsonl" \
+            --prob_file "${out_dir}/probs/test_${trait}.prob" \
+            --out_file "${eval_file}"
+        fi
+
+        for id in {1..2};
+        do
+            eval_file_cm="${out_dir}/cms/cm_${trait}_${id}.png"
+            if [[ ! -f "${eval_file_cm}" ]]; then
+            python '../../seq2seq/evaluate_cm.py' \
+                --prompt_id "${id}" \
+                --gold_file "${data_dir}/test/test_${trait}.jsonl" \
+                --prob_file "${out_dir}/probs/test_${trait}.prob" \
+                --out_file "${eval_file_cm}"
+            fi
+        done
+    done
+done

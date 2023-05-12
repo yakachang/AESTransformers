@@ -9,7 +9,7 @@ batch_size=8
 grad_acc=1
 max_epoch=20
 patience=5
-pretrained="t5-small"
+pretrained="google/flan-t5-small"
 source_key="text"
 target_key="label"
 
@@ -26,11 +26,11 @@ do
         exit
     fi
 
+    # --do_train \
+    # --do_eval \
     # --overwrite_output_dir \
-    python ../../run_seq2seq.py \
+    python ../../run_seq2seq_seqio.py \
         --seed ${seed} \
-        --do_train \
-        --do_eval \
         --learning_rate "${lr}" \
         --max_source_length=${max_len} \
         --per_device_train_batch_size=${batch_size} \
