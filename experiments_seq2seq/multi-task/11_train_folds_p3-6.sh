@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -ex
+
+seed=3435
+lr=1e-4
+max_len=512
+batch_size=8
+grad_acc=1
+max_epoch=20
+patience=5
+pretrained="t5-small"   # "t5-small" "t5-base"
+source_key="text"
+target_key="label"
+
+for fold_id in "fold_0" "fold_1" "fold_2" "fold_3" "fold_4";
+do
+    data_dir="../../data/ASAP++/Multi-Task/folds_p3-6/${fold_id}"
+    fold_path="folds_p3-6/${fold_id}"
+    setting="epoch${max_epoch}-patience${patience}"
+    base_path="models/${fold_path}/lr${lr}-b${batch_size}a${grad_acc}/${setting}"
+    model_dir="${base_path}/${pretrained}-len${max_len}-mod"
+
+    if [[ -d "${model_dir}" ]]; then
+        echo "${model_dir} exists! Skip training."
+        exit
+    fi
+
+    # --overwrite_output_dir \
+    python ../../run_seq2seq.py \
+        --seed ${seed} \
+        --do_train \
+        --do_eval \
+        --learning_rate "${lr}" \
+        --max_source_length=${max_len} \
+        --per_device_train_batch_size=${batch_size} \
+        --per_device_eval_batch_size=${batch_size} \
+        --gradient_accumulation_steps=${grad_acc} \
+        --num_train_epochs=${max_epoch} \
+        --patience=${patience} \
+        --logging_steps=100 \
+        --load_best_model_at_end=True \
+        --evaluation_strategy="epoch" \
+        --save_strategy="epoch" \
+        --predict_with_generate \
+        --model_name_or_path "${pretrained}" \
+        --source_key "${source_key}" \
+        --target_key "${target_key}" \
+        --train_file "${data_dir}/train.json" \
+        --validation_file "${data_dir}/dev.json" \
+        --output_dir "${model_dir}" \
+        --adafactor \
+        --fp16 \
+        --fp16_full_eval
+done
