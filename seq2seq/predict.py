@@ -1,4 +1,4 @@
-# import torch
+import torch
 import argparse
 
 import numpy as np
@@ -33,10 +33,15 @@ def add_prefix(text):
 def main():
     args = build_args()
 
+    device = (
+        torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    )
+
     tokenizer = AutoTokenizer.from_pretrained(args.checkpoint_file)
     model = AutoModelForSeq2SeqLM.from_pretrained(
-        args.checkpoint_file, ignore_mismatched_sizes=True
-    )
+        args.checkpoint_file,
+        ignore_mismatched_sizes=True,
+    ).to(device)
 
     tokenizer.padding_side = "right"
     tokenizer.pad_token = tokenizer.eos_token  # to avoid an error
@@ -49,21 +54,21 @@ def main():
 
     texts = iter(texts)
 
-    while batch_lines := tuple(islice(texts, 512)):
+    while batch_lines := tuple(islice(texts, args.batch_size)):
 
         inputs = tokenizer(
             list(batch_lines),
             padding=True,
             truncation=True,
             return_tensors="pt",
-        )
+        ).to(device)
 
         output_sequences = model.generate(
             input_ids=inputs["input_ids"],
             attention_mask=inputs["attention_mask"],
             max_length=2,
             do_sample=False,  # disable sampling to test if batching affects output
-        )
+        ).to(device)
         predicts.extend(
             [
                 int(pred)
