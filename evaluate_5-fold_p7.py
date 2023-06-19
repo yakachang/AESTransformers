@@ -4,10 +4,9 @@ import numpy as np
 
 
 trait_prompt = {
-    "content": [3, 4, 5, 6],
-    "prompt_adherence": [3, 4, 5, 6],
-    "language": [3, 4, 5, 6],
-    "narrativity": [3, 4, 5, 6],
+    "content": [7],
+    "organization": [7],
+    "conventions": [7],
 }
 
 
@@ -16,7 +15,7 @@ def main():
     batch = "b8a1"
     max_len = 512
 
-    path_to_folder = "experiments_seq2seq/multi-task/models/folds_p3-6"
+    path_to_folder = "experiments_seq2seq/multi-task/models/folds_p7"
 
     # "t5-small" "t5-base"
     pretrained = "t5-small"
@@ -30,9 +29,9 @@ def main():
         }
     }
 
-    for trait in trait_prompt.keys():
+    for trait, prompt_ids in trait_prompt.items():
         results[trait] = {}
-        for prompt_id in [3, 4, 5, 6]:
+        for prompt_id in prompt_ids:
             mse_scores = []
             qwk_scores = []
             for fold in [f"fold_{idx}" for idx in range(5)]:

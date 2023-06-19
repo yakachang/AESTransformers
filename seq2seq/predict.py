@@ -71,7 +71,7 @@ def main():
         ).to(device)
         predicts.extend(
             [
-                int(pred)
+                int(pred) if pred and pred.isnumeric() else 0
                 for pred in tokenizer.batch_decode(
                     output_sequences, skip_special_tokens=True
                 )

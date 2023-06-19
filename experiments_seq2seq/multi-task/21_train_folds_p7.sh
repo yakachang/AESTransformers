@@ -9,14 +9,14 @@ batch_size=8
 grad_acc=1
 max_epoch=20
 patience=5
-pretrained="google/flan-t5-small"
+pretrained="t5-small"   # "t5-small" "t5-base"
 source_key="text"
 target_key="label"
 
 for fold_id in "fold_0" "fold_1" "fold_2" "fold_3" "fold_4";
 do
-    data_dir="../../data/ASAP++/Multi-Task/folds_p1-2/${fold_id}"
-    fold_path="folds/${fold_id}"
+    fold_path="folds_p7/${fold_id}"
+    data_dir="../../data/ASAP++/Multi-Task/${fold_path}"
     setting="epoch${max_epoch}-patience${patience}"
     base_path="models/${fold_path}/lr${lr}-b${batch_size}a${grad_acc}/${setting}"
     model_dir="${base_path}/${pretrained}-len${max_len}-mod"
@@ -26,11 +26,11 @@ do
         exit
     fi
 
-    # --do_train \
-    # --do_eval \
     # --overwrite_output_dir \
-    python ../../run_seq2seq_seqio.py \
+    python ../../run_seq2seq.py \
         --seed ${seed} \
+        --do_train \
+        --do_eval \
         --learning_rate "${lr}" \
         --max_source_length=${max_len} \
         --per_device_train_batch_size=${batch_size} \

@@ -51,6 +51,7 @@ def build_args():
     parser.add_argument("--gold_file", type=str, required=True)
     parser.add_argument("--prob_file", type=str, required=True)
     parser.add_argument("--out_file", type=str, required=True)
+    parser.add_argument("--prompt_ids", type=str, required=True)
     args = parser.parse_args()
     return args
 
@@ -61,7 +62,9 @@ def main():
     results = {}
     qwk_all = []
 
-    for prompt_id in [1, 2]:
+    prompt_ids = [int(prompt_id) for prompt_id in args.prompt_ids.split(",")]
+
+    for prompt_id in prompt_ids:
         gold_labels = load_gold_labels(args.gold_file, prompt_id)
         pred_labels = load_pred_labels(args.gold_file, args.prob_file, prompt_id)
 

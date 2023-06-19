@@ -4,7 +4,7 @@ set -ex
 
 seed=3435
 lr=1e-4
-max_len=512
+max_len=1024
 batch_size=8
 grad_acc=1
 max_epoch=20
@@ -15,7 +15,7 @@ target_key="label"
 
 for fold_id in "fold_0" "fold_1" "fold_2" "fold_3" "fold_4";
 do
-    fold_path="folds_p3-6/${fold_id}"
+    fold_path="folds_p8/${fold_id}"
     data_dir="../../data/ASAP++/Multi-Task/${fold_path}"
     setting="epoch${max_epoch}-patience${patience}"
     base_path="models/${fold_path}/lr${lr}-b${batch_size}a${grad_acc}/${setting}"

@@ -16,14 +16,14 @@ target_key="label"
 for fold_id in "fold_0" "fold_1" "fold_2" "fold_3" "fold_4";
 do
     data_dir="../../data/ASAP++/Multi-Task/folds_p1-2/${fold_id}"
-    fold_path="folds/${fold_id}"
+    fold_path="folds_p1-2/${fold_id}"
     setting="epoch${max_epoch}-patience${patience}"
     base_path="models/${fold_path}/lr${lr}-b${batch_size}a${grad_acc}/${setting}"
     model_dir="${base_path}/${pretrained}-len${max_len}-mod"
 
     if [[ -d "${model_dir}" ]]; then
         echo "${model_dir} exists! Skip training."
-        exit
+        continue
     fi
 
     # --overwrite_output_dir \

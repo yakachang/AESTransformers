@@ -12,8 +12,8 @@ pretrained="t5-small"
 
 for fold_id in "fold_0" "fold_1" "fold_2" "fold_3" "fold_4";
 do
-    data_dir="../../data/ASAP++/Multi-Task/folds_p1-2/${fold_id}"
-    fold_path="folds_p1-2/${fold_id}"
+    fold_path="folds_p7/${fold_id}"
+    data_dir="../../data/ASAP++/Multi-Task/${fold_path}"
     setting="epoch${max_epoch}-patience${patience}"
     base_path="models/${fold_path}/lr${lr}-b${batch_size}a${grad_acc}/${setting}"
     model_dir="${base_path}/${pretrained}-len${max_len}-mod"
@@ -25,7 +25,7 @@ do
     mkdir -p "${out_dir}/evals"
     mkdir -p "${out_dir}/cms"
 
-    for trait in "content" "organization" "word_choice" "sentence_fluency" "conventions";
+    for trait in "content" "organization" "conventions";
     do
         out_file="${out_dir}/probs/test_${trait}.prob"
         if [[ ! -f "${out_file}" ]]; then
@@ -43,19 +43,17 @@ do
             --gold_file "${data_dir}/test/test_${trait}.jsonl" \
             --prob_file "${out_dir}/probs/test_${trait}.prob" \
             --out_file "${eval_file}" \
-            --prompt_ids "1,2"
+            --prompt_ids "7"
         fi
 
-        for id in {1..2};
-        do
-            eval_file_cm="${out_dir}/cms/cm_${trait}_${id}.png"
-            if [[ ! -f "${eval_file_cm}" ]]; then
-            python '../../seq2seq/evaluate_cm.py' \
-                --prompt_id "${id}" \
-                --gold_file "${data_dir}/test/test_${trait}.jsonl" \
-                --prob_file "${out_dir}/probs/test_${trait}.prob" \
-                --out_file "${eval_file_cm}"
-            fi
-        done
+        id=7
+        eval_file_cm="${out_dir}/cms/cm_${trait}_${id}.png"
+        if [[ ! -f "${eval_file_cm}" ]]; then
+        python '../../seq2seq/evaluate_cm.py' \
+            --prompt_id "${id}" \
+            --gold_file "${data_dir}/test/test_${trait}.jsonl" \
+            --prob_file "${out_dir}/probs/test_${trait}.prob" \
+            --out_file "${eval_file_cm}"
+        fi
     done
 done
