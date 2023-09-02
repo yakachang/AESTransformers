@@ -17,15 +17,16 @@ def build_args():
     parser.add_argument("--checkpoint_file", type=str, required=True)
     parser.add_argument("--in_file", type=str, required=True)
     parser.add_argument("--out_file", type=str, required=True)
+    parser.add_argument("--trait", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=64)
     args = parser.parse_args()
     return args
 
 
-def add_prefix(text):
+def add_prefix(trait, text):
 
-    trait, text = text.split(":", 1)
-    trait = " ".join(trait.split("_"))
+    # trait, text = text.split(":", 1)
+    # trait = " ".join(trait.split("_"))
 
     return f"Give a score according to the {trait} of the essay: {text}"
 
@@ -48,7 +49,7 @@ def main():
 
     df_test = pd.read_json(args.in_file, lines=True)
     texts = df_test["text"].tolist()
-    texts = [add_prefix(text) for text in texts]
+    texts = [add_prefix(args.trait, text) for text in texts]
 
     predicts = []
 
